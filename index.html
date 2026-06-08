@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>School Refusal Inquiry — Submission Explorer</title>
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#fff; --ink:#1f2933; --muted:#647280; --line:#e2e8f0;
+  --accent:#2b6cb0; --accent-soft:#ebf2fb; --hi:#fff3bf; --hi-strong:#ffe066;
+  --org:#2b6cb0; --indiv:#2f855a; --withheld:#9c4221; --chip:#edf2f7;
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 20px}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px}
+.sub a{color:var(--accent);text-decoration:none}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+.stats b{font-size:16px;display:block}
+.stat{color:var(--muted)}
+.tabs{display:flex;gap:4px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+.tab{padding:11px 16px;cursor:pointer;border:none;background:none;font-size:14px;color:var(--muted);border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+main{padding:0}
+.view{display:none}
+.view.active{display:block}
+
+/* Search & Browse layout */
+.toolbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#q{flex:1;min-width:240px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+.toolbar select,.toolbar input[type=number]{padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px}
+.filters{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.filters label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.split{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:0;height:calc(100vh - 250px);min-height:420px}
+.list{overflow:auto;border-right:1px solid var(--line);background:var(--panel)}
+.reader{overflow:auto;padding:22px 28px;background:var(--panel)}
+.result{padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.result:hover{background:var(--accent-soft)}
+.result.sel{background:var(--accent-soft);border-left:3px solid var(--accent);padding-left:13px}
+.result .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.result .name{font-weight:600;font-size:14px}
+.result .meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.result .snip{font-size:12.5px;color:#3b4654;margin-top:6px;max-height:54px;overflow:hidden}
+.badge{font-size:11px;padding:1px 7px;border-radius:10px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.badge.Organisation{background:#e6f0fa;color:var(--org)}
+.badge.Named.individual,.badge.Named{background:#e6f4ec;color:var(--indiv)}
+.badge.Name.withheld,.badge.Name{background:#fbeae1;color:var(--withheld)}
+.badge.parent{background:#f3e8fd;color:#6b46c1}
+.badge.mcount{background:var(--hi-strong);color:#735c00}
+.count-line{padding:8px 20px;font-size:13px;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line)}
+mark{background:var(--hi);padding:0 1px}
+mark.cur{background:var(--hi-strong)}
+.reader h2{font-size:18px;margin:0 0 2px}
+.reader .rmeta{color:var(--muted);font-size:13px;margin-bottom:14px}
+.reader .rmeta a{color:var(--accent)}
+.doc-text{white-space:pre-wrap;font-size:14.5px;line-height:1.65;border-top:1px solid var(--line);padding-top:16px}
+.empty{color:var(--muted);padding:40px;text-align:center}
+.tagbar{background:var(--accent-soft);border:1px solid #cfe0f3;border-radius:10px;padding:12px;margin-bottom:14px}
+.tagbar .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.tagbar input[type=text]{padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:13px}
+.tagbar textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:13px;resize:vertical;min-height:42px}
+.btn{padding:7px 13px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:7px;cursor:pointer;font-size:13px}
+.btn.ghost{background:#fff;color:var(--accent)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.tagchip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #cfe0f3;color:#2b4a6b;border-radius:12px;padding:2px 4px 2px 9px;font-size:12px;margin:2px}
+.tagchip button{border:none;background:none;color:#9aa7b4;cursor:pointer;font-size:14px;line-height:1}
+.quote{background:#fff;border-left:3px solid var(--accent);padding:8px 10px;margin:8px 0;font-size:13px;color:#3b4654}
+
+/* Themes */
+.panel-pad{padding:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.card h3{margin:0 0 4px;font-size:15px}
+.card .hint{color:var(--muted);font-size:12.5px;margin-bottom:14px}
+.bar-row{display:grid;grid-template-columns:210px 1fr 70px;gap:10px;align-items:center;margin:6px 0;font-size:13px}
+.bar-track{background:var(--chip);border-radius:5px;height:18px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:5px}
+.bar-val{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+table.freq{width:100%;border-collapse:collapse;font-size:13px}
+table.freq td,table.freq th{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+table.freq th{color:var(--muted);font-weight:600}
+table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.scope{background:#fff8e1;border:1px solid #ffe9a8;color:#7a5d00;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:16px}
+
+/* Tags view */
+.tag-group{margin-bottom:18px}
+.tag-group h4{margin:0 0 8px;font-size:14px}
+.tag-item{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+.tag-item .h{display:flex;justify-content:space-between;gap:8px}
+.tag-item a{color:var(--accent);cursor:pointer;text-decoration:none}
+.note{color:#3b4654;margin-top:4px;white-space:pre-wrap}
+.foot{padding:14px 20px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:760px){.split{grid-template-columns:1fr;height:auto}.list{max-height:300px}.bar-row{grid-template-columns:130px 1fr 50px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>School Refusal Inquiry — Submission Explorer</h1>
+  <div class="sub" id="subtitle">Loading…</div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-view="browse">Search &amp; Browse</button>
+  <button class="tab" data-view="themes">Themes &amp; Frequency</button>
+  <button class="tab" data-view="tags">My Tags &amp; Export</button>
+</div>
+
+<main>
+  <!-- BROWSE -->
+  <section class="view active" id="view-browse">
+    <div class="toolbar">
+      <input id="q" type="search" placeholder='Search all submissions — use "quotes" for exact phrases, multiple words = all must appear'>
+      <select id="sort">
+        <option value="relevance">Sort: Relevance</option>
+        <option value="number">Sort: Submission #</option>
+        <option value="words_desc">Sort: Longest</option>
+        <option value="words_asc">Sort: Shortest</option>
+      </select>
+    </div>
+    <div class="filters" id="filters">
+      <span><b>Type:</b></span>
+      <label><input type="checkbox" class="ftype" value="Organisation" checked> Organisation</label>
+      <label><input type="checkbox" class="ftype" value="Named individual" checked> Named individual</label>
+      <label><input type="checkbox" class="ftype" value="Name withheld" checked> Name withheld</label>
+      <label style="margin-left:8px"><input type="checkbox" id="fparent"> Only personal / parent accounts</label>
+      <label style="margin-left:8px">Theme:
+        <select id="ftheme"><option value="">Any</option></select></label>
+      <label>Min words: <input type="number" id="fwords" min="0" step="100" value="0" style="width:80px"></label>
+    </div>
+    <div class="count-line" id="countline"></div>
+    <div class="split">
+      <div class="list" id="list"></div>
+      <div class="reader" id="reader"><div class="empty">Select a submission to read it here.</div></div>
+    </div>
+  </section>
+
+  <!-- THEMES -->
+  <section class="view" id="view-themes">
+    <div class="panel-pad">
+      <div class="scope" id="themescope"></div>
+      <div class="card">
+        <h3>Theme coverage</h3>
+        <div class="hint">How many submissions (in the current filter/search set) mention each theme, and total keyword mentions. Themes are keyword groups — a starting point, not a substitute for close reading.</div>
+        <div id="themebars"></div>
+      </div>
+      <div class="card">
+        <h3>Most frequent words</h3>
+        <div class="hint">Top words across the current set (common stop-words removed). Click a word to search it.</div>
+        <table class="freq"><thead><tr><th>#</th><th>Word</th><th>Mentions</th></tr></thead><tbody id="freqbody"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAGS -->
+  <section class="view" id="view-tags">
+    <div class="panel-pad">
+      <div class="card">
+        <h3>Export</h3>
+        <div class="hint">Your tags &amp; notes are saved in this browser only (not shared). Export to CSV to share or analyse elsewhere.</div>
+        <button class="btn" id="exptags">Export my tags &amp; notes (CSV)</button>
+        <button class="btn ghost" id="expresults">Export current result list (CSV)</button>
+        <button class="btn ghost" id="clearall" style="border-color:#c53030;color:#c53030">Clear all my tags</button>
+      </div>
+      <div id="tagsummary"></div>
+    </div>
+  </section>
+</main>
+<div class="foot" id="foot"></div>
+
+<script>
+let DATA=null, SUBS=[], CUR=null, RESULTS=[];
+const STORE_KEY="sr_tags_v1";
+let TAGS=JSON.parse(localStorage.getItem(STORE_KEY)||"{}");
+function saveTags(){localStorage.setItem(STORE_KEY,JSON.stringify(TAGS));}
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const slug=s=>s.replace(/[^a-z]+/gi,"-");
+
+// ---------- load ----------
+fetch("data.json").then(r=>r.json()).then(d=>{
+  DATA=d; SUBS=d.submissions;
+  $("#subtitle").innerHTML='“'+esc(d.meta.inquiry)+'” · '+esc(d.meta.committee)+
+    ' · <a href="'+d.meta.source_url+'" target="_blank" rel="noopener">source on aph.gov.au ↗</a>';
+  const byType={}; let parent=0,notext=0;
+  SUBS.forEach(s=>{byType[s.type]=(byType[s.type]||0)+1; if(s.personal_account)parent++; if(!s.has_text)notext++;});
+  $("#stats").innerHTML=
+    stat(SUBS.length,"submissions")+
+    stat(byType["Name withheld"]||0,"name withheld")+
+    stat(byType["Organisation"]||0,"organisations")+
+    stat((byType["Named individual"]||0),"named individuals")+
+    stat(parent,"personal / parent accounts");
+  d.meta.theme_groups.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;$("#ftheme").appendChild(o);});
+  $("#foot").innerHTML=esc(d.meta.note)+(notext?(" · "+notext+" submission(s) had little extractable text (likely scanned)."):"");
+  render();
+});
+const stat=(n,l)=>`<span class="stat"><b>${n}</b>${l}</span>`;
+
+// ---------- query parsing ----------
+function parseQuery(q){
+  q=q.trim(); if(!q)return[];
+  const terms=[]; const re=/"([^"]+)"|(\S+)/g; let m;
+  while(m=re.exec(q)){ const t=(m[1]||m[2]).toLowerCase(); if(t)terms.push(t); }
+  return terms;
+}
+function countTerm(text,term){
+  const rx=new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+  return (text.match(rx)||[]).length;
+}
+function highlight(text,terms,markFirst){
+  if(!terms.length)return esc(text);
+  const rx=new RegExp("("+terms.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")","gi");
+  let i=0;
+  return esc(text).replace(new RegExp(rx.source.replace(/[&<>"]/g,c=>c),"gi"),
+    m=>{i++;return `<mark${markFirst&&i===1?' class="cur" id="firsthit"':''}>${m}</mark>`;});
+}
+function snippet(text,terms){
+  if(!terms.length)return esc(text.slice(0,180))+(text.length>180?"…":"");
+  const low=text.toLowerCase(); let pos=-1;
+  for(const t of terms){const p=low.indexOf(t); if(p>=0&&(pos<0||p<pos))pos=p;}
+  if(pos<0)return esc(text.slice(0,180));
+  const start=Math.max(0,pos-70), end=Math.min(text.length,pos+150);
+  return (start>0?"…":"")+highlight(text.slice(start,end),terms,false)+(end<text.length?"…":"");
+}
+
+// ---------- filtering / search ----------
+function activeFilters(){
+  return {
+    types:$$(".ftype:checked").map(c=>c.value),
+    parent:$("#fparent").checked,
+    theme:$("#ftheme").value,
+    minWords:+$("#fwords").value||0,
+    terms:parseQuery($("#q").value),
+    sort:$("#sort").value
+  };
+}
+function compute(){
+  const f=activeFilters();
+  let res=SUBS.filter(s=>f.types.includes(s.type))
+    .filter(s=>!f.parent||s.personal_account)
+    .filter(s=>s.words>=f.minWords)
+    .filter(s=>!f.theme||(s.themes[f.theme]||0)>0);
+  res=res.map(s=>{
+    let mc=0; let ok=true;
+    for(const t of f.terms){const c=countTerm(s.text,t); if(c===0)ok=false; mc+=c;}
+    return {s,matches:mc,ok};
+  });
+  if(f.terms.length)res=res.filter(r=>r.ok);
+  const sort=f.sort;
+  res.sort((a,b)=>{
+    if(sort==="relevance"&&f.terms.length)return b.matches-a.matches;
+    if(sort==="words_desc")return b.s.words-a.s.words;
+    if(sort==="words_asc")return a.s.words-b.s.words;
+    return (+a.s.number)-(+b.s.number);
+  });
+  return {f,res};
+}
+function render(){
+  const {f,res}=compute();
+  RESULTS=res;
+  const list=$("#list");
+  $("#countline").innerHTML=res.length+" submission"+(res.length!==1?"s":"")+
+    (f.terms.length?(" matching "+f.terms.map(t=>'<b>'+esc(t)+'</b>').join(" + ")):"")+
+    " · "+res.reduce((a,r)=>a+r.matches,0)+(f.terms.length?" total mentions":"");
+  list.innerHTML = res.length?res.map(r=>{
+    const s=r.s, tg=TAGS[s.number];
+    return `<div class="result${CUR&&CUR.number===s.number?' sel':''}" data-n="${s.number}">
+      <div class="top"><span class="name">${esc(s.name)}</span><span class="badge ${slug(s.type)}">${esc(s.type)}</span></div>
+      <div class="meta">#${s.number} · ${s.words.toLocaleString()} words
+        ${s.personal_account?'<span class="badge parent">personal/parent</span>':''}
+        ${f.terms.length?`<span class="badge mcount">${r.matches} match${r.matches!==1?'es':''}</span>`:''}
+        ${tg&&(tg.tags?.length||tg.quotes?.length)?'<span class="badge" style="background:#f3e8fd;color:#6b46c1">★ tagged</span>':''}
+      </div>
+      ${f.terms.length?`<div class="snip">${snippet(s.text,f.terms)}</div>`:''}
+    </div>`;}).join(""):'<div class="empty">No submissions match.</div>';
+  renderThemes(res.map(r=>r.s),f);
+  renderTagSummary();
+}
+function openSub(n){
+  const s=SUBS.find(x=>x.number===n); if(!s)return;
+  CUR=s; $$(".result").forEach(e=>e.classList.toggle("sel",e.dataset.n===n));
+  const f=activeFilters();
+  const docs=s.documents.map(d=>`<a href="${d.url}" target="_blank" rel="noopener">PDF ↗</a>`).join(" · ");
+  const body=s.has_text?highlight(s.text,f.terms,f.terms.length>0)
+    :'<em>No text could be extracted from this submission (it is likely a scanned image). Open the original PDF above.</em>';
+  $("#reader").innerHTML=`
+    <h2>${esc(s.name)}</h2>
+    <div class="rmeta">Submission #${s.number} · ${esc(s.type)} · ${s.words.toLocaleString()} words · ${docs}
+      ${s.personal_account?' · <span class="badge parent">personal/parent account</span>':''}</div>
+    ${tagBar(s)}
+    <div class="doc-text">${body}</div>`;
+  bindTagBar(s);
+  const hit=document.getElementById("firsthit"); if(hit)hit.scrollIntoView({block:"center"});
+  else $("#reader").scrollTop=0;
+}
+// ---------- tagging ----------
+function tagBar(s){
+  const t=TAGS[s.number]||{tags:[],note:"",quotes:[]};
+  const chips=(t.tags||[]).map(x=>`<span class="tagchip">${esc(x)}<button data-rm="${esc(x)}">×</button></span>`).join("");
+  const quotes=(t.quotes||[]).map((q,i)=>`<div class="quote">“${esc(q.text)}” ${q.tag?'<b>['+esc(q.tag)+']</b>':''} <button class="btn sm ghost" data-rmq="${i}">remove</button></div>`).join("");
+  return `<div class="tagbar">
+    <b>Tag / code this submission</b>
+    <div class="row">${chips}<input type="text" id="newtag" placeholder="add a tag/code…" style="width:160px">
+      <button class="btn sm" id="addtag">Add tag</button>
+      <button class="btn sm ghost" id="quotesel">Tag selected text as quote</button></div>
+    <textarea id="notebox" placeholder="Notes about this submission…">${esc(t.note||"")}</textarea>
+    <div class="row"><button class="btn sm" id="savenote">Save note</button></div>
+    ${quotes}
+  </div>`;
+}
+function bindTagBar(s){
+  const ensure=()=>TAGS[s.number]=TAGS[s.number]||{tags:[],note:"",quotes:[]};
+  $("#addtag").onclick=()=>{const v=$("#newtag").value.trim();if(!v)return;ensure();if(!TAGS[s.number].tags.includes(v))TAGS[s.number].tags.push(v);saveTags();openSub(s.number);render();};
+  $("#newtag").onkeydown=e=>{if(e.key==="Enter")$("#addtag").click();};
+  $$("#reader [data-rm]").forEach(b=>b.onclick=()=>{ensure();TAGS[s.number].tags=TAGS[s.number].tags.filter(x=>x!==b.dataset.rm);saveTags();openSub(s.number);render();});
+  $("#savenote").onclick=()=>{ensure();TAGS[s.number].note=$("#notebox").value;saveTags();flash("Note saved");};
+  $("#quotesel").onclick=()=>{const sel=window.getSelection().toString().trim();if(!sel){alert("Select some text in the submission first.");return;}const tag=prompt("Optional tag/code for this quote:","")||"";ensure();TAGS[s.number].quotes.push({text:sel,tag});saveTags();openSub(s.number);};
+  $$("#reader [data-rmq]").forEach(b=>b.onclick=()=>{ensure();TAGS[s.number].quotes.splice(+b.dataset.rmq,1);saveTags();openSub(s.number);});
+}
+function flash(msg){const f=$("#foot");const o=f.textContent;f.textContent=msg;setTimeout(()=>f.textContent=o,1500);}
+
+// ---------- themes & frequency ----------
+const STOP=new Set("the of to and a in is that for it as are be this with on by an or from at not have has was were will would can which their they our we i you your his her them these those there here what when how all any more most other some such no nor only own same so than too very s t don should now also been being into about up out if then because while where who whom whose may might must shall could each few many much both either neither one two three school students student children child parents parent submission inquiry committee education".split(/\s+/));
+function renderThemes(set,f){
+  const scope=f.terms.length?('search “'+f.terms.join(" ")+'”'):"all";
+  $("#themescope").textContent="Showing analysis for "+set.length+" submission(s) — current view: "+scope+". Adjust filters/search on the Search tab to change this.";
+  // theme bars
+  const tg=DATA.meta.theme_groups.map(name=>{
+    let subsWith=0,total=0; set.forEach(s=>{const c=s.themes[name]||0; if(c>0)subsWith++; total+=c;});
+    return {name,subsWith,total};
+  }).sort((a,b)=>b.subsWith-a.subsWith);
+  const maxSub=Math.max(1,...tg.map(t=>t.subsWith));
+  $("#themebars").innerHTML=tg.map(t=>`<div class="bar-row">
+    <div>${esc(t.name)}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${100*t.subsWith/maxSub}%"></div></div>
+    <div class="bar-val">${t.subsWith} subs · ${t.total}×</div></div>`).join("");
+  // word freq
+  const freq=new Map();
+  set.forEach(s=>{const seen=s.text.toLowerCase().match(/[a-z']{3,}/g)||[];
+    for(const w of seen){if(STOP.has(w))continue;freq.set(w,(freq.get(w)||0)+1);}});
+  const top=[...freq.entries()].sort((a,b)=>b[1]-a[1]).slice(0,40);
+  $("#freqbody").innerHTML=top.map((e,i)=>`<tr><td>${i+1}</td><td><a href="#" data-w="${esc(e[0])}">${esc(e[0])}</a></td><td>${e[1].toLocaleString()}</td></tr>`).join("");
+  $$("#freqbody a").forEach(a=>a.onclick=ev=>{ev.preventDefault();$("#q").value=a.dataset.w;switchView("browse");render();});
+}
+
+// ---------- tags summary & export ----------
+function renderTagSummary(){
+  const entries=Object.entries(TAGS).filter(([n,t])=>(t.tags?.length||t.note||t.quotes?.length));
+  const box=$("#tagsummary");
+  if(!entries.length){box.innerHTML='<div class="card"><div class="hint">No tags yet. Open a submission in <b>Search &amp; Browse</b> and use the tagging box.</div></div>';return;}
+  // group by tag
+  const byTag={};
+  entries.forEach(([n,t])=>(t.tags||[]).forEach(tag=>{(byTag[tag]=byTag[tag]||[]).push(n);}));
+  let html='<div class="card"><h3>Tagged submissions ('+entries.length+')</h3>';
+  if(Object.keys(byTag).length){html+='<div class="hint">By tag/code:</div>';
+    for(const [tag,ns] of Object.entries(byTag).sort((a,b)=>b[1].length-a[1].length))
+      html+=`<span class="tagchip" style="cursor:default">${esc(tag)} · ${ns.length}</span>`;}
+  html+='</div>';
+  entries.forEach(([n,t])=>{const s=SUBS.find(x=>x.number===n);if(!s)return;
+    html+=`<div class="tag-item"><div class="h"><b><a data-open="${n}">#${n} ${esc(s.name)}</a></b><span class="badge ${slug(s.type)}">${esc(s.type)}</span></div>`;
+    if(t.tags?.length)html+='<div>'+t.tags.map(x=>`<span class="tagchip" style="cursor:default">${esc(x)}</span>`).join("")+'</div>';
+    if(t.note)html+=`<div class="note">${esc(t.note)}</div>`;
+    if(t.quotes?.length)t.quotes.forEach(q=>html+=`<div class="quote">“${esc(q.text)}” ${q.tag?'<b>['+esc(q.tag)+']</b>':''}</div>`);
+    html+='</div>';});
+  box.innerHTML=html;
+  $$('#tagsummary [data-open]').forEach(a=>a.onclick=()=>{switchView("browse");openSub(a.dataset.open);});
+}
+function csv(rows){return rows.map(r=>r.map(c=>{c=(c==null?"":""+c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(",")).join("\n");}
+function download(name,text){const b=new Blob([text],{type:"text/csv"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
+$("#exptags").onclick=()=>{
+  const rows=[["submission","name","type","tags","note","quotes"]];
+  Object.entries(TAGS).forEach(([n,t])=>{const s=SUBS.find(x=>x.number===n);if(!s)return;
+    if(!(t.tags?.length||t.note||t.quotes?.length))return;
+    rows.push([n,s.name,s.type,(t.tags||[]).join("; "),t.note||"",(t.quotes||[]).map(q=>(q.tag?"["+q.tag+"] ":"")+q.text).join("  ||  ")]);});
+  download("school_refusal_tags.csv",csv(rows));
+};
+$("#expresults").onclick=()=>{
+  const {f}=compute();
+  const rows=[["submission","name","type","words","matches","personal_account","url",...DATA.meta.theme_groups]];
+  RESULTS.forEach(r=>{const s=r.s;rows.push([s.number,s.name,s.type,s.words,r.matches,s.personal_account,s.url,...DATA.meta.theme_groups.map(t=>s.themes[t]||0)]);});
+  download("school_refusal_results.csv",csv(rows));
+};
+$("#clearall").onclick=()=>{if(confirm("Delete ALL your tags, notes and quotes from this browser?")){TAGS={};saveTags();render();}};
+
+// ---------- events ----------
+let qt; $("#q").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,180);});
+$("#sort").onchange=render; $("#ftheme").onchange=render; $("#fparent").onchange=render;
+$("#fwords").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,250);});
+$$(".ftype").forEach(c=>c.onchange=render);
+$("#list").addEventListener("click",e=>{const r=e.target.closest(".result");if(r)openSub(r.dataset.n);});
+$$(".tab").forEach(t=>t.onclick=()=>switchView(t.dataset.view));
+function switchView(v){$$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
+  $$(".view").forEach(s=>s.classList.toggle("active",s.id==="view-"+v));
+  if(v==="tags")renderTagSummary();}
+</script>
+</body>
+</html>
