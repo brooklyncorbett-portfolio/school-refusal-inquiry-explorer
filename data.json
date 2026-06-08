@@ -1325,7 +1325,7 @@
 "number": "44",
 "name": "Missing School",
 "type": "Organisation",
-"personal_account": false,
+"personal_account": true,
 "url": "https://www.aph.gov.au/DocumentStore.ashx?id=8a7f3c1a-2326-494f-92a3-7dec134fbc19&subId=732600",
 "documents": [
 {
@@ -1835,7 +1835,7 @@
 "number": "75",
 "name": "Mrs Elizabeth Robinson",
 "type": "Named individual",
-"personal_account": true,
+"personal_account": false,
 "url": "https://www.aph.gov.au/DocumentStore.ashx?id=53971cb7-3a0b-4c15-bb54-03a59962a087&subId=732701",
 "documents": [
 {
@@ -2855,7 +2855,7 @@
 "number": "109",
 "name": "Name Withheld",
 "type": "Name withheld",
-"personal_account": true,
+"personal_account": false,
 "url": "https://www.aph.gov.au/DocumentStore.ashx?id=22e80f72-6346-4c54-9929-acce02e8a6a1&subId=728039",
 "documents": [
 {
@@ -4385,7 +4385,7 @@
 "number": "165",
 "name": "Name Withheld",
 "type": "Name withheld",
-"personal_account": true,
+"personal_account": false,
 "url": "https://www.aph.gov.au/DocumentStore.ashx?id=f0fcbaa4-1bb3-4e5c-af8c-29dae17dea7f&subId=735704",
 "documents": [
 {
@@ -4415,7 +4415,7 @@
 "number": "166",
 "name": "Name Withheld",
 "type": "Name withheld",
-"personal_account": true,
+"personal_account": false,
 "url": "https://www.aph.gov.au/DocumentStore.ashx?id=67024232-1012-4924-9c3d-b2ce2c9c4a8a&subId=742699",
 "documents": [
 {

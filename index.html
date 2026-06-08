@@ -123,7 +123,7 @@ table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-
       <label><input type="checkbox" class="ftype" value="Organisation" checked> Organisation</label>
       <label><input type="checkbox" class="ftype" value="Named individual" checked> Named individual</label>
       <label><input type="checkbox" class="ftype" value="Name withheld" checked> Name withheld</label>
-      <label style="margin-left:8px"><input type="checkbox" id="fparent"> Only personal / parent accounts</label>
+      <label style="margin-left:8px" title="Heuristic: text mentions the writer's own child (e.g. 'my son/daughter') or self-identifies as a parent. A triage filter, not verified authorship — read to confirm."><input type="checkbox" id="fparent"> Only ones mentioning personal/parent language</label>
       <label style="margin-left:8px">Theme:
         <select id="ftheme"><option value="">Any</option></select></label>
       <label>Min words: <input type="number" id="fwords" min="0" step="100" value="0" style="width:80px"></label>
@@ -190,7 +190,7 @@ fetch("data.json").then(r=>r.json()).then(d=>{
     stat(byType["Name withheld"]||0,"name withheld")+
     stat(byType["Organisation"]||0,"organisations")+
     stat((byType["Named individual"]||0),"named individuals")+
-    stat(parent,"personal / parent accounts");
+    stat(parent,"mention personal/parent language");
   d.meta.theme_groups.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;$("#ftheme").appendChild(o);});
   $("#foot").innerHTML=esc(d.meta.note)+(notext?(" · "+notext+" submission(s) had little extractable text (likely scanned)."):"");
   render();
@@ -268,7 +268,7 @@ function render(){
     return `<div class="result${CUR&&CUR.number===s.number?' sel':''}" data-n="${s.number}">
       <div class="top"><span class="name">${esc(s.name)}</span><span class="badge ${slug(s.type)}">${esc(s.type)}</span></div>
       <div class="meta">#${s.number} · ${s.words.toLocaleString()} words
-        ${s.personal_account?'<span class="badge parent">personal/parent</span>':''}
+        ${s.personal_account?'<span class="badge parent" title="Text mentions the writer&#39;s own child or self-identifies as a parent. Heuristic — not verified authorship.">personal/parent language</span>':''}
         ${f.terms.length?`<span class="badge mcount">${r.matches} match${r.matches!==1?'es':''}</span>`:''}
         ${tg&&(tg.tags?.length||tg.quotes?.length)?'<span class="badge" style="background:#f3e8fd;color:#6b46c1">★ tagged</span>':''}
       </div>
@@ -287,7 +287,7 @@ function openSub(n){
   $("#reader").innerHTML=`
     <h2>${esc(s.name)}</h2>
     <div class="rmeta">Submission #${s.number} · ${esc(s.type)} · ${s.words.toLocaleString()} words · ${docs}
-      ${s.personal_account?' · <span class="badge parent">personal/parent account</span>':''}</div>
+      ${s.personal_account?' · <span class="badge parent" title="Text mentions the writer&#39;s own child or self-identifies as a parent. Heuristic — not verified authorship.">mentions personal/parent language</span>':''}</div>
     ${tagBar(s)}
     <div class="doc-text">${body}</div>`;
   bindTagBar(s);
@@ -377,7 +377,7 @@ $("#exptags").onclick=()=>{
 };
 $("#expresults").onclick=()=>{
   const {f}=compute();
-  const rows=[["submission","name","type","words","matches","personal_account","url",...DATA.meta.theme_groups]];
+  const rows=[["submission","name","type","words","matches","mentions_personal_parent_language","url",...DATA.meta.theme_groups]];
   RESULTS.forEach(r=>{const s=r.s;rows.push([s.number,s.name,s.type,s.words,r.matches,s.personal_account,s.url,...DATA.meta.theme_groups.map(t=>s.themes[t]||0)]);});
   download("school_refusal_results.csv",csv(rows));
 };
