@@ -183,14 +183,13 @@ fetch("data.json").then(r=>r.json()).then(d=>{
   DATA=d; SUBS=d.submissions;
   $("#subtitle").innerHTML='“'+esc(d.meta.inquiry)+'” · '+esc(d.meta.committee)+
     ' · <a href="'+d.meta.source_url+'" target="_blank" rel="noopener">source on aph.gov.au ↗</a>';
-  const byType={}; let parent=0,notext=0;
-  SUBS.forEach(s=>{byType[s.type]=(byType[s.type]||0)+1; if(s.personal_account)parent++; if(!s.has_text)notext++;});
+  const byType={}; let notext=0;
+  SUBS.forEach(s=>{byType[s.type]=(byType[s.type]||0)+1; if(!s.has_text)notext++;});
+  const others=(byType["Organisation"]||0)+(byType["Named individual"]||0);
   $("#stats").innerHTML=
-    stat(SUBS.length,"submissions")+
-    stat(byType["Name withheld"]||0,"name withheld")+
-    stat(byType["Organisation"]||0,"organisations")+
-    stat((byType["Named individual"]||0),"named individuals")+
-    stat(parent,"mention personal/parent language");
+    stat(SUBS.length,"submissions in total")+
+    stat(byType["Name withheld"]||0,"parent submissions")+
+    stat(others,"organisations & named submitters");
   d.meta.theme_groups.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;$("#ftheme").appendChild(o);});
   $("#foot").innerHTML=esc(d.meta.note)+(notext?(" · "+notext+" submission(s) had little extractable text (likely scanned)."):"");
   render();
