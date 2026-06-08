@@ -32,6 +32,8 @@ main{padding:0}
 .toolbar select,.toolbar input[type=number]{padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px}
 .filters{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
 .filters label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.qf{padding:5px 11px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:14px;cursor:pointer;font-size:12.5px;font-weight:600}
+.qf.active{background:var(--accent);color:#fff}
 .split{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:0;height:calc(100vh - 250px);min-height:420px}
 .list{overflow:auto;border-right:1px solid var(--line);background:var(--panel)}
 .reader{overflow:auto;padding:22px 28px;background:var(--panel)}
@@ -119,8 +121,10 @@ table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-
       </select>
     </div>
     <div class="filters" id="filters">
-      <span><b>Type:</b></span>
-      <label><input type="checkbox" class="ftype" value="Organisation" checked> Organisation</label>
+      <button class="qf active" id="qf-indiv" title="Individuals & families only — Name withheld + Named individuals (excludes organisations). These are the parent / lived-experience submissions.">👪 Individuals only</button>
+      <button class="qf" id="qf-all" title="Show everything, including organisation submissions.">All submissions</button>
+      <span style="margin-left:6px"><b>Type:</b></span>
+      <label><input type="checkbox" class="ftype" value="Organisation"> Organisation</label>
       <label><input type="checkbox" class="ftype" value="Named individual" checked> Named individual</label>
       <label><input type="checkbox" class="ftype" value="Name withheld" checked> Name withheld</label>
       <label style="margin-left:8px" title="Heuristic: text mentions the writer's own child (e.g. 'my son/daughter') or self-identifies as a parent. A triage filter, not verified authorship — read to confirm."><input type="checkbox" id="fparent"> Only ones mentioning personal/parent language</label>
@@ -259,6 +263,7 @@ function compute(){
 function render(){
   const {f,res}=compute();
   RESULTS=res;
+  syncQF();
   const list=$("#list");
   $("#countline").innerHTML=res.length+" submission"+(res.length!==1?"s":"")+
     (f.terms.length?(" matching "+f.terms.map(t=>'<b>'+esc(t)+'</b>').join(" + ")):"")+
@@ -388,6 +393,17 @@ let qt; $("#q").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(ren
 $("#sort").onchange=render; $("#ftheme").onchange=render; $("#fparent").onchange=render;
 $("#fwords").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,250);});
 $$(".ftype").forEach(c=>c.onchange=render);
+// quick filters
+function setTypes(vals){$$(".ftype").forEach(c=>c.checked=vals.includes(c.value));render();}
+function syncQF(){
+  const on=$$(".ftype:checked").map(c=>c.value);
+  const indiv=!on.includes("Organisation")&&on.includes("Named individual")&&on.includes("Name withheld");
+  const all=on.length===3;
+  $("#qf-indiv").classList.toggle("active",indiv);
+  $("#qf-all").classList.toggle("active",all);
+}
+$("#qf-indiv").onclick=()=>setTypes(["Named individual","Name withheld"]);
+$("#qf-all").onclick=()=>setTypes(["Organisation","Named individual","Name withheld"]);
 $("#list").addEventListener("click",e=>{const r=e.target.closest(".result");if(r)openSub(r.dataset.n);});
 $$(".tab").forEach(t=>t.onclick=()=>switchView(t.dataset.view));
 function switchView(v){$$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
