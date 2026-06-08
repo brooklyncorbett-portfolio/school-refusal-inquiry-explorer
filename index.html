@@ -83,6 +83,25 @@ table.freq td,table.freq th{text-align:left;padding:5px 8px;border-bottom:1px so
 table.freq th{color:var(--muted);font-weight:600}
 table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .scope{background:#fff8e1;border:1px solid #ffe9a8;color:#7a5d00;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.ctx{font-size:12.5px;padding:3px 5px;border:1px solid var(--line);border-radius:6px}
+/* compare bars (parents vs orgs) */
+.cmp-row{display:grid;grid-template-columns:210px 1fr;gap:12px;align-items:center;margin:9px 0;font-size:13px}
+.cmp-bars{display:flex;flex-direction:column;gap:3px}
+.cmp-bar{height:14px;border-radius:3px;min-width:2px;position:relative}
+.cmp-bar span{position:absolute;right:-42px;top:-2px;font-size:11px;color:var(--muted)}
+.cmp-bar.p{background:#9c4221}
+.cmp-bar.o{background:#2b6cb0}
+/* KWIC table */
+table.kwic{width:100%;border-collapse:collapse;font-size:13px}
+table.kwic td{padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.kwic .l{text-align:right;color:#52606d;width:42%}
+table.kwic .k{text-align:center;font-weight:700;color:#735c00;background:var(--hi);white-space:nowrap;padding:2px 6px}
+table.kwic .r{color:#52606d;width:42%}
+table.kwic .src{white-space:nowrap;color:var(--accent);cursor:pointer;font-size:12px}
+table.kwic tr:hover td{background:#f8fafc}
+/* asks list */
+.ask{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:9px 12px;margin-bottom:8px;font-size:13.5px;line-height:1.5}
+.ask .src{color:var(--accent);cursor:pointer;font-size:12px;font-weight:600;margin-right:8px}
 
 /* Tags view */
 .tag-group{margin-bottom:18px}
@@ -104,6 +123,8 @@ table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-
 
 <div class="tabs">
   <button class="tab active" data-view="browse">Search &amp; Browse</button>
+  <button class="tab" data-view="asks">What parents want</button>
+  <button class="tab" data-view="kwic">Word in context</button>
   <button class="tab" data-view="themes">Themes &amp; Frequency</button>
   <button class="tab" data-view="tags">My Tags &amp; Export</button>
 </div>
@@ -127,6 +148,16 @@ table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-
       <span style="margin-left:18px;color:var(--muted)">Theme:
         <select id="ftheme"><option value="">Any</option></select></span>
       <span style="color:var(--muted)">Min words: <input type="number" id="fwords" min="0" step="100" value="0" style="width:80px"></span>
+      <span style="color:var(--muted)">Reading:
+        <select id="freview"><option value="">All</option><option value="unread">Not reviewed</option><option value="read">Reviewed</option></select></span>
+    </div>
+    <div class="filters" id="ctxfilters" style="border-top:none;padding-top:4px">
+      <span style="color:var(--muted)" title="Auto-detected from the submission text — a triage aid, may include passing mentions.">Mentions:</span>
+      <span style="color:var(--muted)">Condition <select id="fcond" class="ctx"><option value="">Any</option></select></span>
+      <span style="color:var(--muted)">State <select id="fstate" class="ctx"><option value="">Any</option></select></span>
+      <span style="color:var(--muted)">School type <select id="fsector" class="ctx"><option value="">Any</option></select></span>
+      <span style="color:var(--muted)">Stage <select id="fstage" class="ctx"><option value="">Any</option></select></span>
+      <button class="qf" id="ctxclear" style="padding:3px 9px">clear</button>
     </div>
     <div class="count-line" id="countline"></div>
     <div class="split">
@@ -135,9 +166,39 @@ table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-
     </div>
   </section>
 
+  <!-- WHAT PARENTS WANT -->
+  <section class="view" id="view-asks">
+    <div class="toolbar">
+      <input id="askq" type="search" placeholder="Filter the recommendations — e.g. funding, training, mental health, smaller classes…">
+      <button class="btn ghost" id="askexport">Export to CSV</button>
+    </div>
+    <div class="scope" id="askscope" style="margin:14px 20px 0"></div>
+    <div class="count-line" id="askcount"></div>
+    <div id="asklist" class="panel-pad"></div>
+  </section>
+
+  <!-- WORD IN CONTEXT (KWIC) -->
+  <section class="view" id="view-kwic">
+    <div class="toolbar">
+      <input id="kwicq" type="search" placeholder='Type a word or "phrase" to see every mention in context — e.g. suspension, wait list, "school can\'t"'>
+      <button class="btn ghost" id="kwicexport">Export to CSV</button>
+    </div>
+    <div class="scope" id="kwicscope" style="margin:14px 20px 0">Showing mentions in the current set. Use the Parent/All toggle on the Search tab to change the set.</div>
+    <div class="count-line" id="kwiccount"></div>
+    <div style="overflow:auto;max-height:calc(100vh - 230px)">
+      <table class="kwic" id="kwictable"></table>
+    </div>
+  </section>
+
   <!-- THEMES -->
   <section class="view" id="view-themes">
     <div class="panel-pad">
+      <div class="card">
+        <h3>Parents vs organisations — theme prevalence</h3>
+        <div class="hint">Share of <b>parent</b> submissions (name withheld) vs <b>organisation</b> submissions that mention each theme. Fixed comparison across the whole inquiry — not affected by the filters above.</div>
+        <div id="comparebars"></div>
+        <div class="hint" style="margin-top:10px"><span style="display:inline-block;width:11px;height:11px;background:#9c4221;border-radius:2px;vertical-align:middle"></span> Parents &nbsp; <span style="display:inline-block;width:11px;height:11px;background:#2b6cb0;border-radius:2px;vertical-align:middle"></span> Organisations</div>
+      </div>
       <div class="scope" id="themescope"></div>
       <div class="card">
         <h3>Theme coverage</h3>
@@ -173,6 +234,9 @@ let DATA=null, SUBS=[], CUR=null, RESULTS=[];
 const STORE_KEY="sr_tags_v1";
 let TAGS=JSON.parse(localStorage.getItem(STORE_KEY)||"{}");
 function saveTags(){localStorage.setItem(STORE_KEY,JSON.stringify(TAGS));}
+const REVIEW_KEY="sr_review_v1";
+let REVIEW=JSON.parse(localStorage.getItem(REVIEW_KEY)||"{}");
+function saveReview(){localStorage.setItem(REVIEW_KEY,JSON.stringify(REVIEW));}
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -191,7 +255,11 @@ fetch("data.json").then(r=>r.json()).then(d=>{
     stat(byType["Name withheld"]||0,"parent submissions")+
     stat(others,"organisations & named submitters");
   d.meta.theme_groups.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;$("#ftheme").appendChild(o);});
+  const cv=d.meta.context_vocab||{conditions:[],states:[],sectors:[],stage:[]};
+  const fill=(sel,arr)=>arr.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;$(sel).appendChild(o);});
+  fill("#fcond",cv.conditions); fill("#fstate",cv.states); fill("#fsector",cv.sectors); fill("#fstage",cv.stage);
   $("#foot").innerHTML=esc(d.meta.note)+(notext?(" · "+notext+" submission(s) had little extractable text (likely scanned)."):"");
+  renderCompare();
   render();
 });
 const stat=(n,l)=>`<span class="stat"><b>${n}</b>${l}</span>`;
@@ -231,15 +299,24 @@ function activeFilters(){
                          : ["Name withheld"],
     theme:$("#ftheme").value,
     minWords:+$("#fwords").value||0,
+    cond:$("#fcond").value, state:$("#fstate").value,
+    sector:$("#fsector").value, stage:$("#fstage").value,
+    review:$("#freview").value,
     terms:parseQuery($("#q").value),
     sort:$("#sort").value
   };
 }
+const isRead=n=>!!(REVIEW[n]&&REVIEW[n].reviewed);
 function compute(){
   const f=activeFilters();
   let res=SUBS.filter(s=>f.types.includes(s.type))
     .filter(s=>s.words>=f.minWords)
-    .filter(s=>!f.theme||(s.themes[f.theme]||0)>0);
+    .filter(s=>!f.theme||(s.themes[f.theme]||0)>0)
+    .filter(s=>!f.cond||(s.context.conditions||[]).includes(f.cond))
+    .filter(s=>!f.state||(s.context.states||[]).includes(f.state))
+    .filter(s=>!f.sector||(s.context.sectors||[]).includes(f.sector))
+    .filter(s=>!f.stage||(s.context.stage||[]).includes(f.stage))
+    .filter(s=>!f.review||(f.review==="read"?isRead(s.number):!isRead(s.number)));
   res=res.map(s=>{
     let mc=0; let ok=true;
     for(const t of f.terms){const c=countTerm(s.text,t); if(c===0)ok=false; mc+=c;}
@@ -268,7 +345,7 @@ function render(){
     return `<div class="result${CUR&&CUR.number===s.number?' sel':''}" data-n="${s.number}">
       <div class="top"><span class="name">${esc(s.name)}</span><span class="badge ${slug(s.type)}">${esc(s.type)}</span></div>
       <div class="meta">#${s.number} · ${s.words.toLocaleString()} words
-        ${s.personal_account?'<span class="badge parent" title="Text mentions the writer&#39;s own child or self-identifies as a parent. Heuristic — not verified authorship.">personal/parent language</span>':''}
+        ${isRead(s.number)?`<span class="badge" style="background:#def7ec;color:#03734a" title="${REVIEW[s.number].assignee?('Reviewed by '+esc(REVIEW[s.number].assignee)):'Marked reviewed'}">✓ reviewed${REVIEW[s.number].assignee?' · '+esc(REVIEW[s.number].assignee):''}</span>`:''}
         ${f.terms.length?`<span class="badge mcount">${r.matches} match${r.matches!==1?'es':''}</span>`:''}
         ${tg&&(tg.tags?.length||tg.quotes?.length)?'<span class="badge" style="background:#f3e8fd;color:#6b46c1">★ tagged</span>':''}
       </div>
@@ -284,15 +361,37 @@ function openSub(n){
   const docs=s.documents.map(d=>`<a href="${d.url}" target="_blank" rel="noopener">PDF ↗</a>`).join(" · ");
   const body=s.has_text?highlight(s.text,f.terms,f.terms.length>0)
     :'<em>No text could be extracted from this submission (it is likely a scanned image). Open the original PDF above.</em>';
+  const cx=s.context||{};
+  const cchips=[...(cx.conditions||[]),...(cx.sectors||[]),...(cx.states||[]),...(cx.stage||[])]
+    .map(c=>`<span class="badge" style="background:#eef2f7;color:#52606d">${esc(c)}</span>`).join(" ");
   $("#reader").innerHTML=`
     <h2>${esc(s.name)}</h2>
-    <div class="rmeta">Submission #${s.number} · ${esc(s.type)} · ${s.words.toLocaleString()} words · ${docs}
-      ${s.personal_account?' · <span class="badge parent" title="Text mentions the writer&#39;s own child or self-identifies as a parent. Heuristic — not verified authorship.">mentions personal/parent language</span>':''}</div>
+    <div class="rmeta">Submission #${s.number} · ${esc(s.type)} · ${s.words.toLocaleString()} words · ${docs}</div>
+    ${cchips?`<div class="rmeta" style="margin-top:-8px" title="Auto-detected mentions in the text — a triage aid.">Mentions: ${cchips}</div>`:''}
+    ${reviewBar(s)}
     ${tagBar(s)}
     <div class="doc-text">${body}</div>`;
-  bindTagBar(s);
+  bindReviewBar(s); bindTagBar(s);
   const hit=document.getElementById("firsthit"); if(hit)hit.scrollIntoView({block:"center"});
   else $("#reader").scrollTop=0;
+}
+// ---------- reading tracker ----------
+function reviewBar(s){
+  const r=REVIEW[s.number]||{};
+  return `<div class="tagbar" style="background:#f0fdf4;border-color:#bbf7d0">
+    <div class="row" style="margin-top:0">
+      <label style="display:flex;gap:6px;align-items:center;font-weight:600">
+        <input type="checkbox" id="revchk" ${r.reviewed?"checked":""}> Mark as reviewed</label>
+      <input type="text" id="revwho" placeholder="reviewed by (initials)…" value="${esc(r.assignee||"")}" style="width:150px">
+      <span style="color:var(--muted);font-size:12px" title="Like tags, this is stored in this browser only and is not shared with teammates. Export the result list (My Tags &amp; Export) to share progress.">saved in this browser only ⓘ</span>
+    </div>
+  </div>`;
+}
+function bindReviewBar(s){
+  const upd=()=>{REVIEW[s.number]={reviewed:$("#revchk").checked,assignee:$("#revwho").value.trim()};
+    if(!REVIEW[s.number].reviewed&&!REVIEW[s.number].assignee)delete REVIEW[s.number];
+    saveReview();render();};
+  $("#revchk").onchange=upd; $("#revwho").onchange=upd;
 }
 // ---------- tagging ----------
 function tagBar(s){
@@ -344,6 +443,78 @@ function renderThemes(set,f){
   $$("#freqbody a").forEach(a=>a.onclick=ev=>{ev.preventDefault();$("#q").value=a.dataset.w;switchView("browse");render();});
 }
 
+// ---------- parents vs organisations comparison ----------
+function renderCompare(){
+  const parents=SUBS.filter(s=>s.type==="Name withheld");
+  const orgs=SUBS.filter(s=>s.type==="Organisation");
+  const pct=(arr,name)=>arr.length?Math.round(100*arr.filter(s=>(s.themes[name]||0)>0).length/arr.length):0;
+  const rows=DATA.meta.theme_groups.map(name=>({name,p:pct(parents,name),o:pct(orgs,name)}))
+    .sort((a,b)=>b.p-a.p);
+  $("#comparebars").innerHTML=rows.map(r=>`<div class="cmp-row">
+    <div>${esc(r.name)}</div>
+    <div class="cmp-bars">
+      <div class="cmp-bar p" style="width:${r.p}%"><span>${r.p}%</span></div>
+      <div class="cmp-bar o" style="width:${r.o}%"><span>${r.o}%</span></div>
+    </div></div>`).join("");
+}
+
+// ---------- what parents are asking for ----------
+function currentScopeSubs(){
+  const types=SCOPE==="all"?["Organisation","Named individual","Name withheld"]:["Name withheld"];
+  return SUBS.filter(s=>types.includes(s.type));
+}
+let ASKROWS=[];
+function renderAsks(){
+  const q=$("#askq").value.trim().toLowerCase();
+  const subs=currentScopeSubs();
+  let rows=[];
+  subs.forEach(s=>(s.recommendations||[]).forEach(text=>rows.push({s,text})));
+  if(q)rows=rows.filter(r=>r.text.toLowerCase().includes(q));
+  ASKROWS=rows;
+  $("#askscope").textContent="Recommendation & request sentences pulled from "+subs.length+
+    " "+(SCOPE==="all"?"submissions (all)":"parent submissions")+
+    ". Auto-extracted (sentences containing should/must/need/recommend…) — skim to confirm.";
+  $("#askcount").textContent=rows.length+" recommendation sentence"+(rows.length!==1?"s":"")+(q?(' containing “'+q+'”'):"");
+  const hl=t=>q?esc(t).replace(new RegExp("("+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi"),"<mark>$1</mark>"):esc(t);
+  $("#asklist").innerHTML=rows.length?rows.map(r=>`<div class="ask">
+    <span class="src" data-n="${r.s.number}">#${r.s.number} ${esc(r.s.type==="Name withheld"?"(parent)":r.s.name)} ↗</span>${hl(r.text)}</div>`).join("")
+    :'<div class="empty">No matching recommendations.</div>';
+  $$('#asklist .src').forEach(a=>a.onclick=()=>{switchView("browse");openSub(a.dataset.n);});
+}
+
+// ---------- word in context (KWIC) ----------
+let KWICROWS=[];
+function renderKwic(){
+  // treat the whole input as one literal phrase (strip optional surrounding quotes)
+  const term=$("#kwicq").value.trim().replace(/^"(.*)"$/,"$1");
+  const subs=currentScopeSubs();
+  $("#kwicscope").textContent="Searching "+subs.length+" "+(SCOPE==="all"?"submissions (all)":"parent submissions")+
+    ". Switch the set with the Parent/All toggle on the Search tab.";
+  let rows=[];
+  if(term){
+    const W=55;
+    const rx=new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+    for(const s of subs){
+      const t=s.text; let m;
+      while((m=rx.exec(t))){
+        const i=m.index, end=i+m[0].length;
+        rows.push({s,left:t.slice(Math.max(0,i-W),i).replace(/\s+/g," "),
+          kw:m[0],right:t.slice(end,end+W).replace(/\s+/g," ")});
+        if(m.index===rx.lastIndex)rx.lastIndex++;
+        if(rows.length>4000)break;
+      }
+      if(rows.length>4000)break;
+    }
+  }
+  KWICROWS=rows;
+  $("#kwiccount").innerHTML=term?(rows.length+" mention"+(rows.length!==1?"s":"")+" of <b>"+esc(term)+"</b> across "+new Set(rows.map(r=>r.s.number)).size+" submissions"):"Type a word above to build the concordance.";
+  $("#kwictable").innerHTML=rows.map(r=>`<tr>
+    <td class="l">…${esc(r.left)}</td><td class="k">${esc(r.kw)}</td>
+    <td class="r">${esc(r.right)}…</td>
+    <td class="src" data-n="${r.s.number}">#${r.s.number}${r.s.type==="Name withheld"?" (parent)":""}</td></tr>`).join("");
+  $$('#kwictable .src').forEach(a=>a.onclick=()=>{$("#q").value=$("#kwicq").value;switchView("browse");openSub(a.dataset.n);});
+}
+
 // ---------- tags summary & export ----------
 function renderTagSummary(){
   const entries=Object.entries(TAGS).filter(([n,t])=>(t.tags?.length||t.note||t.quotes?.length));
@@ -377,28 +548,50 @@ $("#exptags").onclick=()=>{
 };
 $("#expresults").onclick=()=>{
   const {f}=compute();
-  const rows=[["submission","name","type","words","matches","mentions_personal_parent_language","url",...DATA.meta.theme_groups]];
-  RESULTS.forEach(r=>{const s=r.s;rows.push([s.number,s.name,s.type,s.words,r.matches,s.personal_account,s.url,...DATA.meta.theme_groups.map(t=>s.themes[t]||0)]);});
+  const rows=[["submission","name","type","words","matches","reviewed","reviewed_by","conditions","states","sectors","stage","url",...DATA.meta.theme_groups]];
+  RESULTS.forEach(r=>{const s=r.s;const rv=REVIEW[s.number]||{};const c=s.context||{};
+    rows.push([s.number,s.name,s.type,s.words,r.matches,rv.reviewed?"yes":"",rv.assignee||"",
+      (c.conditions||[]).join("; "),(c.states||[]).join("; "),(c.sectors||[]).join("; "),(c.stage||[]).join("; "),
+      s.url,...DATA.meta.theme_groups.map(t=>s.themes[t]||0)]);});
   download("school_refusal_results.csv",csv(rows));
 };
 $("#clearall").onclick=()=>{if(confirm("Delete ALL your tags, notes and quotes from this browser?")){TAGS={};saveTags();render();}};
+
+// ---------- exports for new views ----------
+$("#askexport").onclick=()=>{
+  const rows=[["submission","name","type","recommendation"]];
+  ASKROWS.forEach(r=>rows.push([r.s.number,r.s.name,r.s.type,r.text]));
+  download("school_refusal_recommendations.csv",csv(rows));
+};
+$("#kwicexport").onclick=()=>{
+  const rows=[["submission","name","type","left_context","keyword","right_context"]];
+  KWICROWS.forEach(r=>rows.push([r.s.number,r.s.name,r.s.type,r.left,r.kw,r.right]));
+  download("school_refusal_concordance.csv",csv(rows));
+};
 
 // ---------- events ----------
 let qt; $("#q").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,180);});
 $("#sort").onchange=render; $("#ftheme").onchange=render;
 $("#fwords").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,250);});
+["#fcond","#fstate","#fsector","#fstage","#freview"].forEach(id=>$(id).onchange=render);
+$("#ctxclear").onclick=()=>{["#fcond","#fstate","#fsector","#fstage","#freview","#ftheme"].forEach(id=>$(id).value="");$("#fwords").value=0;render();};
+$("#askq").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(renderAsks,180);});
+let kt; $("#kwicq").addEventListener("input",()=>{clearTimeout(kt);kt=setTimeout(renderKwic,200);});
 // quick filters
 function syncQF(){
   $("#qf-parent").classList.toggle("active",SCOPE==="parent");
   $("#qf-all").classList.toggle("active",SCOPE==="all");
 }
-$("#qf-parent").onclick=()=>{SCOPE="parent";render();};
-$("#qf-all").onclick=()=>{SCOPE="all";render();};
+function setScope(v){SCOPE=v;render();renderAsks();renderKwic();}
+$("#qf-parent").onclick=()=>setScope("parent");
+$("#qf-all").onclick=()=>setScope("all");
 $("#list").addEventListener("click",e=>{const r=e.target.closest(".result");if(r)openSub(r.dataset.n);});
 $$(".tab").forEach(t=>t.onclick=()=>switchView(t.dataset.view));
 function switchView(v){$$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
   $$(".view").forEach(s=>s.classList.toggle("active",s.id==="view-"+v));
-  if(v==="tags")renderTagSummary();}
+  if(v==="tags")renderTagSummary();
+  if(v==="asks")renderAsks();
+  if(v==="kwic")renderKwic();}
 </script>
 </body>
 </html>

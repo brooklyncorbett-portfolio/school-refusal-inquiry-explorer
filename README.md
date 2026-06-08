@@ -20,20 +20,29 @@ That's it. The two files (`index.html` + `data.json`) **are** the website.
 
 ## Features
 
-- **Full-text search** across every submission. Type multiple words (all must
-  appear) or `"a quoted phrase"` for an exact match. Results are ranked by
-  number of mentions, with highlighted snippets, and the reading pane jumps to
-  and highlights every hit.
-- **Filter & browse** by submission type (Organisation / Named individual /
-  Name withheld), "personal / parent accounts only", theme, and minimum length.
-- **Themes & Frequency** — for whatever set you've filtered/searched to, see how
-  many submissions mention each theme (anxiety & mental health, neurodivergence
-  & disability, bullying, services, school response, funding, alternative
-  education, family impact) plus the most frequent words.
-- **Tagging & export** — tag/code any submission, add notes, and save quotes you
-  select. Export your tags & notes, or the current result list, to CSV.
-  *Tags are stored in your own browser (localStorage) — they are personal to
-  each researcher and are not shared between people or devices.*
+- **Search & Browse** — opens on **Parent submissions** (the 78 name-withheld
+  lived-experience accounts); one click shows **All submissions**. Full-text
+  search (multiple words = all must appear, or `"a quoted phrase"`), ranked with
+  highlighted snippets; the reading pane jumps to and highlights every hit.
+  Extra filters: theme, minimum length, reading status, and auto-detected
+  **context** (condition e.g. autism/ADHD/anxiety, state, school type, school
+  stage).
+- **What parents want** — auto-extracted recommendation/request sentences
+  ("…should…", "…need to…", "…recommend…") across the current set, filterable
+  and exportable. A fast way to see what parents are asking the inquiry to change.
+- **Word in context (KWIC)** — type any word or phrase and get every mention
+  with its surrounding text, in a table you can export. The quick way to pull
+  quotes for a given term (e.g. *suspension*, *wait list*, *NDIS*).
+- **Themes & Frequency** — a **Parents vs organisations** comparison (share of
+  each group mentioning each theme), plus per-set theme coverage and most
+  frequent words.
+- **Tagging, reviewing & export** — tag/code submissions, add notes, save
+  selected quotes, and mark submissions **reviewed** (with initials) to divide
+  reading across the team. Export tags, the recommendation list, the
+  concordance, or the current result list to CSV.
+  *Tags and review status are stored in each person's own browser
+  (localStorage) — they persist on that device but are **not shared** between
+  people. Use CSV export to combine the team's work.*
 
 ## Running it locally
 
