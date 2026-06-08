@@ -121,16 +121,12 @@ table.freq td:last-child,table.freq th:last-child{text-align:right;font-variant-
       </select>
     </div>
     <div class="filters" id="filters">
-      <button class="qf active" id="qf-indiv" title="Individuals & families only — Name withheld + Named individuals (excludes organisations). These are the parent / lived-experience submissions.">👪 Individuals only</button>
+      <span style="font-weight:600;color:var(--ink)">Show:</span>
+      <button class="qf active" id="qf-parent" title="The anonymous lived-experience submissions (name withheld) — overwhelmingly parents and families. Excludes organisations and named experts/academics.">👪 Parent submissions</button>
       <button class="qf" id="qf-all" title="Show everything, including organisation submissions.">All submissions</button>
-      <span style="margin-left:6px"><b>Type:</b></span>
-      <label><input type="checkbox" class="ftype" value="Organisation"> Organisation</label>
-      <label><input type="checkbox" class="ftype" value="Named individual" checked> Named individual</label>
-      <label><input type="checkbox" class="ftype" value="Name withheld" checked> Name withheld</label>
-      <label style="margin-left:8px" title="Heuristic: text mentions the writer's own child (e.g. 'my son/daughter') or self-identifies as a parent. A triage filter, not verified authorship — read to confirm."><input type="checkbox" id="fparent"> Only ones mentioning personal/parent language</label>
-      <label style="margin-left:8px">Theme:
-        <select id="ftheme"><option value="">Any</option></select></label>
-      <label>Min words: <input type="number" id="fwords" min="0" step="100" value="0" style="width:80px"></label>
+      <span style="margin-left:18px;color:var(--muted)">Theme:
+        <select id="ftheme"><option value="">Any</option></select></span>
+      <span style="color:var(--muted)">Min words: <input type="number" id="fwords" min="0" step="100" value="0" style="width:80px"></span>
     </div>
     <div class="count-line" id="countline"></div>
     <div class="split">
@@ -229,10 +225,11 @@ function snippet(text,terms){
 }
 
 // ---------- filtering / search ----------
+let SCOPE="parent"; // "parent" = individuals/families only, "all" = everything
 function activeFilters(){
   return {
-    types:$$(".ftype:checked").map(c=>c.value),
-    parent:$("#fparent").checked,
+    types: SCOPE==="all" ? ["Organisation","Named individual","Name withheld"]
+                         : ["Name withheld"],
     theme:$("#ftheme").value,
     minWords:+$("#fwords").value||0,
     terms:parseQuery($("#q").value),
@@ -242,7 +239,6 @@ function activeFilters(){
 function compute(){
   const f=activeFilters();
   let res=SUBS.filter(s=>f.types.includes(s.type))
-    .filter(s=>!f.parent||s.personal_account)
     .filter(s=>s.words>=f.minWords)
     .filter(s=>!f.theme||(s.themes[f.theme]||0)>0);
   res=res.map(s=>{
@@ -390,20 +386,15 @@ $("#clearall").onclick=()=>{if(confirm("Delete ALL your tags, notes and quotes f
 
 // ---------- events ----------
 let qt; $("#q").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,180);});
-$("#sort").onchange=render; $("#ftheme").onchange=render; $("#fparent").onchange=render;
+$("#sort").onchange=render; $("#ftheme").onchange=render;
 $("#fwords").addEventListener("input",()=>{clearTimeout(qt);qt=setTimeout(render,250);});
-$$(".ftype").forEach(c=>c.onchange=render);
 // quick filters
-function setTypes(vals){$$(".ftype").forEach(c=>c.checked=vals.includes(c.value));render();}
 function syncQF(){
-  const on=$$(".ftype:checked").map(c=>c.value);
-  const indiv=!on.includes("Organisation")&&on.includes("Named individual")&&on.includes("Name withheld");
-  const all=on.length===3;
-  $("#qf-indiv").classList.toggle("active",indiv);
-  $("#qf-all").classList.toggle("active",all);
+  $("#qf-parent").classList.toggle("active",SCOPE==="parent");
+  $("#qf-all").classList.toggle("active",SCOPE==="all");
 }
-$("#qf-indiv").onclick=()=>setTypes(["Named individual","Name withheld"]);
-$("#qf-all").onclick=()=>setTypes(["Organisation","Named individual","Name withheld"]);
+$("#qf-parent").onclick=()=>{SCOPE="parent";render();};
+$("#qf-all").onclick=()=>{SCOPE="all";render();};
 $("#list").addEventListener("click",e=>{const r=e.target.closest(".result");if(r)openSub(r.dataset.n);});
 $$(".tab").forEach(t=>t.onclick=()=>switchView(t.dataset.view));
 function switchView(v){$$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
